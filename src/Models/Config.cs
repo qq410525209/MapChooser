@@ -1,0 +1,41 @@
+namespace MapChooser.Models;
+
+public class RtvConfig
+{
+    public bool Enabled { get; set; } = true;
+    public bool EnabledInWarmup { get; set; } = true;
+    public bool NominationEnabled { get; set; } = true;
+    public int MinPlayers { get; set; } = 0;
+    public int MinRounds { get; set; } = 0;
+    public bool ChangeMapImmediately { get; set; } = true;
+    public int MapsToShow { get; set; } = 6;
+    public int VoteDuration { get; set; } = 30;
+    public int VotePercentage { get; set; } = 60;
+    public int VoteCooldownTime { get; set; } = 300;
+}
+
+public class VotemapConfig
+{
+    public bool Enabled { get; set; } = true;
+    public int VotePercentage { get; set; } = 60;
+    public bool ChangeMapImmediately { get; set; } = true;
+    public int MinPlayers { get; set; } = 0;
+}
+
+public class EndOfMapConfig
+{
+    public bool Enabled { get; set; } = true;
+    public int MapsToShow { get; set; } = 6;
+    public int VoteDuration { get; set; } = 30;
+    public int TriggerSecondsBeforeEnd { get; set; } = 120;
+    public int TriggerRoundsBeforeEnd { get; set; } = 2;
+}
+
+public class MapChooserConfig
+{
+    public RtvConfig Rtv { get; set; } = new();
+    public VotemapConfig Votemap { get; set; } = new();
+    public EndOfMapConfig EndOfMap { get; set; } = new();
+    public int MapsInCooldown { get; set; } = 3;
+    public List<Map> Maps { get; set; } = new();
+}

@@ -1,0 +1,60 @@
+{
+    "MapChooser": {
+        "Rtv": {
+            "Enabled": true,
+            "EnabledInWarmup": false,
+            "NominationEnabled": true,
+            "MinPlayers": 0,
+            "MinRounds": 0,
+            "ChangeMapImmediately": true,
+            "MapsToShow": 3,
+            "VoteDuration": 30,
+            "VotePercentage": 60,
+            "VoteCooldownTime": 300,
+        },
+        "Votemap": {
+            "Enabled": true,
+            "VotePercentage": 60,
+            "ChangeMapImmediately": true,
+            "MinPlayers": 0,
+        },
+        "EndOfMap": {
+            "Enabled": true,
+            "MapsToShow": 6,
+            "VoteDuration": 30,
+            "TriggerSecondsBeforeEnd": 120,
+            "TriggerRoundsBeforeEnd": 4,
+        },
+        "MapsInCooldown": 3,
+        "Maps": [
+            {
+                "Name": "Dust II",
+                "Id": "de_dust2",
+            },
+            {
+                "Name": "Mirage",
+                "Id": "de_mirage",
+            },
+            {
+                "Name": "Inferno",
+                "Id": "de_inferno",
+            },
+            {
+                "Name": "Nuke",
+                "Id": "de_nuke",
+            },
+            {
+                "Name": "Ancient",
+                "Id": "de_ancient",
+            },
+            {
+                "Name": "Anubis",
+                "Id": "de_anubis",
+            },
+            {
+                "Name": "Inferno Night",
+                "Id": "3124567099",
+            },
+        ],
+    },
+}

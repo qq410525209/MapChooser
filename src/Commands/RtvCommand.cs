@@ -1,0 +1,60 @@
+using MapChooser.Models;
+using MapChooser.Dependencies;
+using MapChooser.Helpers;
+using SwiftlyS2.Shared;
+using SwiftlyS2.Shared.Commands;
+using SwiftlyS2.Shared.Players;
+
+namespace MapChooser.Commands;
+
+public class RtvCommand
+{
+    private readonly ISwiftlyCore _core;
+    private readonly PluginState _state;
+    private readonly VoteManager _voteManager;
+    private readonly EndOfMapVoteManager _eofManager;
+    private readonly MapChooserConfig _config;
+
+    public RtvCommand(ISwiftlyCore core, PluginState state, VoteManager voteManager, EndOfMapVoteManager eofManager, MapChooserConfig config)
+    {
+        _core = core;
+        _state = state;
+        _voteManager = voteManager;
+        _eofManager = eofManager;
+        _config = config;
+    }
+
+    public void Execute(ICommandContext context)
+    {
+        if (!_config.Rtv.Enabled) return;
+        if (!context.IsSentByPlayer) return;
+
+        var player = context.Sender!;
+        var localizer = _core.Translation.GetPlayerLocalizer(player);
+
+        if (_state.EofVoteHappening)
+        {
+            player.SendChat(localizer["map_chooser.prefix"] + " " + localizer["map_chooser.rtv.already_voted"]);
+            return;
+        }
+
+        if (_voteManager.AddVote(player.Slot))
+        {
+            var allPlayers = _core.PlayerManager.GetAllPlayers().Where(p => p.IsValid && !p.IsFakeClient).ToList();
+            int totalPlayers = allPlayers.Count;
+            int needed = _voteManager.GetRequiredVotes(totalPlayers);
+            
+            _core.PlayerManager.SendChat(localizer["map_chooser.prefix"] + " " + localizer["map_chooser.rtv.voted", player.Controller?.PlayerName ?? "Unknown", _voteManager.VoteCount, needed]);
+
+            if (_voteManager.HasReached(totalPlayers))
+            {
+                _voteManager.Clear();
+                _eofManager.StartVote(_config.Rtv.VoteDuration, _config.Rtv.MapsToShow, _config.Rtv.ChangeMapImmediately);
+            }
+        }
+        else
+        {
+            player.SendChat(localizer["map_chooser.prefix"] + " " + localizer["map_chooser.rtv.already_voted"]);
+        }
+    }
+}

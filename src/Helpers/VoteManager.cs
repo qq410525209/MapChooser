@@ -31,15 +31,17 @@ public class VoteManager
         _voters.Clear();
     }
 
-    public bool HasReached(int totalPlayers)
+    public bool HasReached(int totalPlayers, int? percentage = null)
     {
         if (totalPlayers == 0) return false;
-        int required = (int)Math.Ceiling(totalPlayers * (_requiredPercentage / 100.0));
+        int pct = percentage ?? _requiredPercentage;
+        int required = (int)Math.Ceiling(totalPlayers * (pct / 100.0));
         return VoteCount >= required;
     }
 
-    public int GetRequiredVotes(int totalPlayers)
+    public int GetRequiredVotes(int totalPlayers, int? percentage = null)
     {
-        return (int)Math.Ceiling(totalPlayers * (_requiredPercentage / 100.0));
+        int pct = percentage ?? _requiredPercentage;
+        return (int)Math.Ceiling(totalPlayers * (pct / 100.0));
     }
 }

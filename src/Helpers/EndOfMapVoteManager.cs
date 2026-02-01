@@ -18,6 +18,7 @@ public class EndOfMapVoteManager
     private readonly MapLister _mapLister;
     private readonly MapCooldown _mapCooldown;
     private readonly ChangeMapManager _changeMapManager;
+    private readonly ExtendManager _extendManager;
     private readonly MapChooserConfig _config;
 
     private Dictionary<string, int> _votes = new();
@@ -28,7 +29,7 @@ public class EndOfMapVoteManager
     private DateTime _voteEndTime;
     private readonly HashSet<int> _playersReceivedMenu = new();
 
-    public EndOfMapVoteManager(ISwiftlyCore core, PluginState state, VoteManager voteManager, MapLister mapLister, MapCooldown mapCooldown, ChangeMapManager changeMapManager, MapChooserConfig config)
+    public EndOfMapVoteManager(ISwiftlyCore core, PluginState state, VoteManager voteManager, MapLister mapLister, MapCooldown mapCooldown, ChangeMapManager changeMapManager, ExtendManager extendManager, MapChooserConfig config)
     {
         _core = core;
         _state = state;
@@ -36,6 +37,7 @@ public class EndOfMapVoteManager
         _mapLister = mapLister;
         _mapCooldown = mapCooldown;
         _changeMapManager = changeMapManager;
+        _extendManager = extendManager;
         _config = config;
     }
 
@@ -57,6 +59,11 @@ public class EndOfMapVoteManager
         var allMaps = _mapLister.Maps.Select(m => m.Name).ToList();
         var random = new Random();
         _mapsInVote = allMaps.OrderBy(x => random.Next()).Take(mapsToShow).ToList();
+
+        if (_config.EndOfMap.AllowExtend && _state.ExtendsLeft > 0)
+        {
+            _mapsInVote.Add("map_chooser.extend_option");
+        }
 
         foreach (var map in _mapsInVote)
             _votes[map] = 0;
@@ -162,7 +169,8 @@ public class EndOfMapVoteManager
         _votes[map]++;
 
         var localizer = _core.Translation.GetPlayerLocalizer(player);
-        player.SendChat(localizer["map_chooser.prefix"] + " " + localizer["map_chooser.vote.you_voted", map]);
+        string displayName = map == "map_chooser.extend_option" ? localizer["map_chooser.extend_option"] : map;
+        player.SendChat(localizer["map_chooser.prefix"] + " " + localizer["map_chooser.vote.you_voted", displayName]);
         
         // Refresh menu for everyone to show new counts
         RefreshVoteMenu();
@@ -210,74 +218,68 @@ public class EndOfMapVoteManager
     private void EndVote()
     {
         if (!_voteActive) return;
-        
-        // Validation for RTV at the end of the voting period
-        if (_isRtvVote)
-        {
-            var allPlayers = _core.PlayerManager.GetAllPlayers()
-                .Where(p => p.IsValid && !p.IsFakeClient && (_config.AllowSpectatorsToVote || p.Controller?.TeamNum > 1))
-                .ToList();
-            if (!_voteManager.HasReached(allPlayers.Count))
-            {
-                 // RTV Failed
-                 _core.PlayerManager.SendChat(_core.Localizer["map_chooser.prefix"] + " " + _core.Localizer["map_chooser.rtv.vote_cancelled"]);
-                 
-                 // Enable Cooldown
-                 _state.RtvCooldownEndTime = DateTime.Now.AddSeconds(_config.Rtv.VoteCooldownTime);
 
-                 _voteActive = false;
-                 _state.EofVoteHappening = false;
-                 _isRtvVote = false;
-                 
-                 // Close Menus
-                 foreach (var player in allPlayers)
-                 {
-                    var menu = _core.MenusAPI.GetCurrentMenu(player);
-                    if (menu?.Tag?.ToString() == "EofVoteMenu")
-                    {
-                        _core.MenusAPI.CloseMenuForPlayer(player, menu);
-                    }
-                 }
-                 
-                 _voteManager.Clear();
-                 return;
+        try
+        {
+            // Validation for RTV at the end of the voting period
+            if (_isRtvVote)
+            {
+                var allPlayers = _core.PlayerManager.GetAllPlayers()
+                    .Where(p => p.IsValid && !p.IsFakeClient && (_config.AllowSpectatorsToVote || p.Controller?.TeamNum > 1))
+                    .ToList();
+                if (!_voteManager.HasReached(allPlayers.Count))
+                {
+                    // RTV Failed
+                    _core.PlayerManager.SendChat(_core.Localizer["map_chooser.prefix"] + " " + _core.Localizer["map_chooser.rtv.vote_cancelled"]);
+                    
+                    // Enable Cooldown
+                    _state.RtvCooldownEndTime = DateTime.Now.AddSeconds(_config.Rtv.VoteCooldownTime);
+                    return;
+                }
+                // If succeeded, we clear the RTV votes now as the result is confirmed
+                _voteManager.Clear();
             }
-            // If succeeded, we clear the RTV votes now as the result is confirmed
-            _voteManager.Clear();
-        }
-        
-        _voteActive = false;
-        _state.EofVoteHappening = false;
 
-        // Check and close menus for players
-        foreach (var player in _core.PlayerManager.GetAllPlayers().Where(p => p.IsValid))
-        {
-            var menu = _core.MenusAPI.GetCurrentMenu(player);
-            if (menu?.Tag?.ToString() == "EofVoteMenu")
+            if (_votes.Count == 0) return;
+
+            string winner = _votes.OrderByDescending(x => x.Value).FirstOrDefault().Key;
+            if (string.IsNullOrEmpty(winner))
             {
-                _core.MenusAPI.CloseMenuForPlayer(player, menu);
+                winner = _mapsInVote.OrderBy(_ => Guid.NewGuid()).FirstOrDefault() ?? "";
+            }
+
+            if (string.IsNullOrEmpty(winner)) return;
+
+            if (winner == "map_chooser.extend_option")
+            {
+                _core.PlayerManager.SendChat(_core.Localizer["map_chooser.prefix"] + " " + _core.Localizer["map_chooser.extend.vote_passed", _votes.GetValueOrDefault(winner, 0)]);
+                _extendManager.ExtendMap(_config.EndOfMap.ExtendTimeStep, _config.EndOfMap.ExtendRoundStep);
+            }
+            else
+            {
+                _core.PlayerManager.SendChat(_core.Localizer["map_chooser.prefix"] + " " + _core.Localizer["map_chooser.vote.ended", winner, _votes.GetValueOrDefault(winner, 0)]);
+                _changeMapManager.ScheduleMapChange(winner, _changeImmediately);
             }
         }
-
-        if (_votes.Count == 0)
+        finally
         {
-            return;
+            _voteActive = false;
+            _state.EofVoteHappening = false;
+            _isRtvVote = false;
+
+            // Check and close menus for players
+            foreach (var player in _core.PlayerManager.GetAllPlayers().Where(p => p.IsValid))
+            {
+                var menu = _core.MenusAPI.GetCurrentMenu(player);
+                if (menu?.Tag?.ToString() == "EofVoteMenu")
+                {
+                    _core.MenusAPI.CloseMenuForPlayer(player, menu);
+                }
+            }
+            
+            _votes.Clear();
+            _playerVotes.Clear();
+            _playersReceivedMenu.Clear();
         }
-
-        string winner = _votes.OrderByDescending(x => x.Value).FirstOrDefault().Key;
-        if (string.IsNullOrEmpty(winner))
-        {
-            // Fallback to a random map from the vote list if somehow FirstOrDefault failed
-            winner = _mapsInVote.OrderBy(_ => Guid.NewGuid()).FirstOrDefault() ?? "";
-        }
-
-        if (string.IsNullOrEmpty(winner))
-        {
-            return;
-        }
-
-        _core.PlayerManager.SendChat(_core.Localizer["map_chooser.prefix"] + " " + _core.Localizer["map_chooser.vote.ended", winner, _votes.GetValueOrDefault(winner, 0)]);
-
-        _changeMapManager.ScheduleMapChange(winner, _changeImmediately);
     }
 }

@@ -14,7 +14,7 @@ using SwiftlyS2.Shared.SchemaDefinitions;
 
 namespace MapChooser;
 
-[PluginMetadata(Id = "MapChooser", Version = "0.0.2-beta", Name = "Map Chooser", Author = "abnerfs, Oz-Lin (Ported by Cascade)", Description = "Port of cs2-rockthevote to SwiftlyS2")]
+[PluginMetadata(Id = "MapChooser", Version = "0.0.3-beta", Name = "Map Chooser", Author = "abnerfs, Oz-Lin (Ported by Cascade)", Description = "Port of cs2-rockthevote to SwiftlyS2")]
 public sealed class MapChooser : BasePlugin {
     private MapChooserConfig _config = new();
     private PluginState _state = new();
@@ -22,7 +22,9 @@ public sealed class MapChooser : BasePlugin {
     private MapCooldown _mapCooldown = null!;
     private ChangeMapManager _changeMapManager = null!;
     private VoteManager _rtvVoteManager = null!;
+    private VoteManager _extVoteManager = null!;
     private EndOfMapVoteManager _eofManager = null!;
+    private ExtendManager _extendManager = null!;
     
     private RtvCommand _rtvCmd = null!;
     private UnRtvCommand _unRtvCmd = null!;
@@ -32,6 +34,7 @@ public sealed class MapChooser : BasePlugin {
     private VotemapCommand _votemapCmd = null!;
     private RevoteCommand _revoteCmd = null!;
     private SetNextMapCommand _setNextMapCmd = null!;
+    private ExtendCommand _extendCmd = null!;
 
     public MapChooser(ISwiftlyCore core) : base(core)
     {
@@ -56,7 +59,14 @@ public sealed class MapChooser : BasePlugin {
         _mapCooldown = new MapCooldown(_config);
         _changeMapManager = new ChangeMapManager(Core, _state, _mapLister);
         _rtvVoteManager = new VoteManager();
-        _eofManager = new EndOfMapVoteManager(Core, _state, _rtvVoteManager, _mapLister, _mapCooldown, _changeMapManager, _config);
+        _extVoteManager = new VoteManager();
+        _extendManager = new ExtendManager(Core, _state, _config);
+        _eofManager = new EndOfMapVoteManager(Core, _state, _rtvVoteManager, _mapLister, _mapCooldown, _changeMapManager, _extendManager, _config);
+
+        _state.ExtendsLeft = _config.EndOfMap.ExtendLimit;
+        _state.NextEofVotePossibleRound = 0;
+        _state.NextEofVotePossibleTime = 0;
+        _state.RoundsPlayed = 0;
 
         _rtvCmd = new RtvCommand(Core, _state, _rtvVoteManager, _eofManager, _config);
         _unRtvCmd = new UnRtvCommand(Core, _state, _rtvVoteManager, _eofManager, _config);
@@ -66,6 +76,7 @@ public sealed class MapChooser : BasePlugin {
         _votemapCmd = new VotemapCommand(Core, _state, _mapLister, _mapCooldown, _changeMapManager, _config);
         _revoteCmd = new RevoteCommand(Core, _state, _eofManager, _config);
         _setNextMapCmd = new SetNextMapCommand(Core, _state, _mapLister, _changeMapManager);
+        _extendCmd = new ExtendCommand(Core, _state, _extVoteManager, _extendManager, _config);
 
         Core.Command.RegisterCommand("rtv", _rtvCmd.Execute);
         Core.Command.RegisterCommand("unrtv", _unRtvCmd.Execute);
@@ -75,6 +86,8 @@ public sealed class MapChooser : BasePlugin {
         Core.Command.RegisterCommand("votemap", _votemapCmd.Execute);
         Core.Command.RegisterCommand("revote", _revoteCmd.Execute);
         Core.Command.RegisterCommand("setnextmap", _setNextMapCmd.Execute, permission: "@css/changemap");
+        Core.Command.RegisterCommand("ext", _extendCmd.Execute);
+        Core.Command.RegisterCommand("extendmap", _extendCmd.Execute);
 
         Core.GameEvent.HookPost<EventRoundEnd>(OnRoundEnd);
         Core.GameEvent.HookPost<EventRoundStart>(OnRoundStart);
@@ -82,24 +95,12 @@ public sealed class MapChooser : BasePlugin {
         Core.GameEvent.HookPost<EventWarmupEnd>(OnWarmupEnd);
         Core.GameEvent.HookPost<EventCsWinPanelMatch>(OnWinPanelMatch);
         Core.GameEvent.HookPost<EventRoundAnnounceMatchStart>(OnMatchStart);
+        Core.GameEvent.HookPost<EventRoundAnnounceMatchPoint>(OnMatchPoint);
         Core.Event.OnMapLoad += OnMapLoad;
 
         Core.Scheduler.DelayAndRepeat(1000, 1000, () =>
         {
-            if (_state.WarmupRunning || _state.EofVoteHappening || _state.MapChangeScheduled) return;
-
-            var timelimitConVar = Core.ConVar.Find<float>("mp_timelimit");
-            float timelimit = timelimitConVar?.Value ?? 0;
-
-            if (timelimit > 0 && Core.Engine?.GlobalVars != null)
-            {
-                float timePlayed = Core.Engine.GlobalVars.CurrentTime - _state.MapStartTime;
-                float timeRemaining = (timelimit * 60) - timePlayed;
-                if (timeRemaining <= _config.EndOfMap.TriggerSecondsBeforeEnd)
-                {
-                    _eofManager.StartVote(_config.EndOfMap.VoteDuration, _config.EndOfMap.MapsToShow);
-                }
-            }
+            CheckAutomatedVote();
         });
     }
 
@@ -113,7 +114,11 @@ public sealed class MapChooser : BasePlugin {
         _state.RtvCooldownEndTime = null;
         
         _rtvVoteManager?.Clear();
+        _extVoteManager?.Clear();
         _nominateCmd?.Clear();
+        _state.ExtendsLeft = _config.EndOfMap.ExtendLimit;
+        _state.NextEofVotePossibleRound = 0;
+        _state.NextEofVotePossibleTime = 0;
     }
 
     private HookResult OnRoundStart(EventRoundStart @event)
@@ -142,6 +147,22 @@ public sealed class MapChooser : BasePlugin {
         _state.RoundsPlayed = 0;
         _state.MapStartTime = Core.Engine.GlobalVars.CurrentTime;
         _state.WarmupRunning = false;
+        _state.NextEofVotePossibleRound = 0;
+        _state.NextEofVotePossibleTime = 0;
+        _state.MapChangeScheduled = false;
+        _state.EofVoteHappening = false;
+        _state.NextMap = null;
+        _state.ExtendsLeft = _config.EndOfMap.ExtendLimit;
+        
+        _rtvVoteManager?.Clear();
+        _extVoteManager?.Clear();
+        _nominateCmd?.Clear();
+        return HookResult.Continue;
+    }
+
+    private HookResult OnMatchPoint(EventRoundAnnounceMatchPoint @event)
+    {
+        CheckAutomatedVote(true);
         return HookResult.Continue;
     }
 
@@ -174,9 +195,22 @@ public sealed class MapChooser : BasePlugin {
         return HookResult.Continue;
     }
 
-    private void CheckAutomatedVote()
+    private void CheckAutomatedVote(bool force = false)
     {
         if (!_config.EndOfMap.Enabled || _state.EofVoteHappening || _state.MapChangeScheduled || _state.WarmupRunning) return;
+
+        // Sync rounds played with engine for better accuracy
+        var gameRules = Core.EntitySystem.GetGameRules();
+        if (gameRules != null)
+        {
+            _state.RoundsPlayed = gameRules.TotalRoundsPlayed;
+        }
+
+        if (!force)
+        {
+            if (_state.RoundsPlayed < _state.NextEofVotePossibleRound) return;
+            if (Core.Engine?.GlobalVars != null && Core.Engine.GlobalVars.CurrentTime < _state.NextEofVotePossibleTime) return;
+        }
 
         var timelimitConVar = Core.ConVar.Find<float>("mp_timelimit");
         var maxroundsConVar = Core.ConVar.Find<int>("mp_maxrounds");

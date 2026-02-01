@@ -64,11 +64,11 @@ public class RtvCommand
                 .Where(p => p.IsValid && !p.IsFakeClient && (_config.AllowSpectatorsToVote || p.Controller?.TeamNum > 1))
                 .ToList();
             int totalPlayers = allPlayers.Count;
-            int needed = _voteManager.GetRequiredVotes(totalPlayers);
+            int needed = _voteManager.GetRequiredVotes(totalPlayers, _config.Rtv.VotePercentage);
             
             _core.PlayerManager.SendChat(localizer["map_chooser.prefix"] + " " + localizer["map_chooser.rtv.voted", player.Controller?.PlayerName ?? "Unknown", _voteManager.VoteCount, needed]);
 
-            if (_voteManager.HasReached(totalPlayers))
+            if (_voteManager.HasReached(totalPlayers, _config.Rtv.VotePercentage))
             {
                 // _voteManager.Clear(); // Don't clear votes immediately to allow for retraction
                 _eofManager.StartVote(_config.Rtv.VoteDuration, _config.Rtv.MapsToShow, _config.Rtv.ChangeMapImmediately, isRtv: true);

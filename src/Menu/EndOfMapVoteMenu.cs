@@ -35,8 +35,15 @@ public class EndOfMapVoteMenu
         foreach (var map in mapsInVote)
         {
             int count = votes.ContainsKey(map) ? votes[map] : 0;
-            var option = new ButtonMenuOption($"<font color='lightgreen'>{map}</font> <font color='red'>[{count}]</font>");
-            option.Enabled = !_mapCooldown.IsMapInCooldown(map);
+            string displayName = map;
+            bool isExtend = map == "map_chooser.extend_option";
+            if (isExtend)
+            {
+                displayName = localizer["map_chooser.extend_option"];
+            }
+
+            var option = new ButtonMenuOption($"{(isExtend ? "<font color='orange'>" : "<font color='lightgreen'>")}{displayName}</font> <font color='red'>[{count}]</font>");
+            option.Enabled = isExtend || !_mapCooldown.IsMapInCooldown(map);
             option.Click += (sender, args) =>
             {
                 _core.Scheduler.NextTick(() => {

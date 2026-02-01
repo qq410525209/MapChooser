@@ -12,5 +12,8 @@ public class PluginState
     public float MapStartTime { get; set; }
     public int RoundsPlayed { get; set; }
     public bool WarmupRunning { get; set; }
+    public int ExtendsLeft { get; set; }
+    public int NextEofVotePossibleRound { get; set; }
+    public float NextEofVotePossibleTime { get; set; }
     public DateTime? RtvCooldownEndTime { get; set; }
 }

@@ -4,7 +4,7 @@
   "map_chooser.rtv.already_voted": "Você já votou para alterar o mapa.",
   "map_chooser.rtv.vote_removed": "Você removeu seu voto para alterar o mapa.",
   "map_chooser.rtv.vote_cancelled": "A votação para alterar o mapa foi cancelada.",
-  "map_chooser.rtv.cooldown": "A votação para alterar o mapa está cooldown. Aguarde {0} segundos.",
+  "map_chooser.rtv.cooldown": "A votação para alterar o mapa está em cooldown. Aguarde {0} segundos.",
   "map_chooser.rtv.not_voted": "Você não votou para alterar o mapa.",
   "map_chooser.vote.started": "A votação começou! Vote no próximo mapa.",
   "map_chooser.vote.title": "Vote no próximo mapa:",

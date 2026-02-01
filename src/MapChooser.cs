@@ -14,7 +14,7 @@ using SwiftlyS2.Shared.SchemaDefinitions;
 
 namespace MapChooser;
 
-[PluginMetadata(Id = "MapChooser", Version = "0.0.4-beta", Name = "Map Chooser", Author = "aga", Description = "Map chooser plugin for SwiftlyS2")]
+[PluginMetadata(Id = "MapChooser", Version = "0.0.5-beta", Name = "Map Chooser", Author = "aga", Description = "Map chooser plugin for SwiftlyS2")]
 public sealed class MapChooser : BasePlugin {
     private MapChooserConfig _config = new();
     private PluginState _state = new();
@@ -113,7 +113,15 @@ public sealed class MapChooser : BasePlugin {
         _state.EofVoteHappening = false;
         _state.NextMap = null;
         _state.RoundsPlayed = 0;
-        _state.MapStartTime = 0; // Initialize to 0, will be updated on MatchStart/WarmupEnd
+        if (Core.Engine != null)
+        {
+            _state.MapStartTime = Core.Engine.GlobalVars.CurrentTime;
+        }
+        else
+        {
+            _state.MapStartTime = 0;
+        }
+        
         _state.RtvCooldownEndTime = null;
         
         _rtvVoteManager?.Clear();
@@ -141,14 +149,14 @@ public sealed class MapChooser : BasePlugin {
     private HookResult OnWarmupEnd(EventWarmupEnd @event)
     {
         _state.WarmupRunning = false;
-        _state.MapStartTime = Core.Engine.GlobalVars.CurrentTime;
+        _state.MapStartTime = Core.Engine?.GlobalVars.CurrentTime ?? 0;
         return HookResult.Continue;
     }
 
     private HookResult OnMatchStart(EventRoundAnnounceMatchStart @event)
     {
         _state.RoundsPlayed = 0;
-        _state.MapStartTime = Core.Engine.GlobalVars.CurrentTime;
+        _state.MapStartTime = Core.Engine?.GlobalVars.CurrentTime ?? 0;
         _state.WarmupRunning = false;
         _state.NextEofVotePossibleRound = 0;
         _state.NextEofVotePossibleTime = 0;
@@ -212,7 +220,7 @@ public sealed class MapChooser : BasePlugin {
         if (!force)
         {
             if (_state.RoundsPlayed < _state.NextEofVotePossibleRound) return;
-            if (Core.Engine?.GlobalVars != null && Core.Engine.GlobalVars.CurrentTime < _state.NextEofVotePossibleTime) return;
+            if (Core.Engine != null && Core.Engine.GlobalVars.CurrentTime < _state.NextEofVotePossibleTime) return;
         }
 
         var timelimitConVar = Core.ConVar.Find<float>("mp_timelimit");
@@ -225,8 +233,12 @@ public sealed class MapChooser : BasePlugin {
 
         bool trigger = false;
 
-        if (timelimit > 0 && Core.Engine?.GlobalVars != null)
+        if (timelimit > 0 && Core.Engine != null)
         {
+            if (_state.MapStartTime <= 0)
+            {
+                _state.MapStartTime = Core.Engine.GlobalVars.CurrentTime;
+            }
             float timePlayed = Core.Engine.GlobalVars.CurrentTime - _state.MapStartTime;
             float timeRemaining = (timelimit * 60) - timePlayed;
             if (timeRemaining <= _config.EndOfMap.TriggerSecondsBeforeEnd)
@@ -279,6 +291,9 @@ public sealed class MapChooser : BasePlugin {
 
         if (trigger)
         {
+            _state.NextEofVotePossibleRound = _state.RoundsPlayed + 1;
+            if (Core.Engine != null)
+                _state.NextEofVotePossibleTime = Core.Engine.GlobalVars.CurrentTime + _config.EndOfMap.VoteDuration + 1;
             _eofManager.StartVote(_config.EndOfMap.VoteDuration, _config.EndOfMap.MapsToShow);
         }
     }

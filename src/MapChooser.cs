@@ -194,9 +194,9 @@ public sealed class MapChooser : BasePlugin {
     private HookResult OnRoundEnd(EventRoundEnd @event)
     {
         _state.RoundsPlayed++;
-        if (_state.MapChangeScheduled && !_state.EofVoteHappening)
+        if (_state.MapChangeScheduled && !_state.EofVoteHappening && !_state.ChangeMapImmediately)
         {
-           // Do nothing, wait for match end or specific trigger
+            _changeMapManager.ChangeMap();
         }
         else
         {

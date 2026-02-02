@@ -252,22 +252,9 @@ public class EndOfMapVoteManager
 
         try
         {
-            // Validation for RTV at the end of the voting period
+            // Clear RTV votes if this was an RTV vote
             if (_isRtvVote)
             {
-                var allPlayers = _core.PlayerManager.GetAllPlayers()
-                    .Where(p => p.IsValid && !p.IsFakeClient && (_config.AllowSpectatorsToVote || p.Controller?.TeamNum > 1))
-                    .ToList();
-                if (!_voteManager.HasReached(allPlayers.Count))
-                {
-                    // RTV Failed
-                    _core.PlayerManager.SendChat(_core.Localizer["map_chooser.prefix"] + " " + _core.Localizer["map_chooser.rtv.vote_cancelled"]);
-                    
-                    // Enable Cooldown
-                    _state.RtvCooldownEndTime = DateTime.Now.AddSeconds(_config.Rtv.VoteCooldownTime);
-                    return;
-                }
-                // If succeeded, we clear the RTV votes now as the result is confirmed
                 _voteManager.Clear();
             }
 
@@ -289,7 +276,7 @@ public class EndOfMapVoteManager
             else
             {
                 _core.PlayerManager.SendChat(_core.Localizer["map_chooser.prefix"] + " " + _core.Localizer["map_chooser.vote.ended", winner, _votes.GetValueOrDefault(winner, 0)]);
-                _changeMapManager.ScheduleMapChange(winner, _changeImmediately);
+                _changeMapManager.ScheduleMapChange(winner, _changeImmediately, _isRtvVote);
             }
         }
         finally

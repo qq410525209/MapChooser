@@ -58,7 +58,7 @@ public sealed class MapChooser : BasePlugin {
         _mapLister.UpdateMaps(_config.Maps);
         
         _mapCooldown = new MapCooldown(_config);
-        _changeMapManager = new ChangeMapManager(Core, _state, _mapLister);
+        _changeMapManager = new ChangeMapManager(Core, _state, _mapLister, _config);
         _rtvVoteManager = new VoteManager();
         _extVoteManager = new VoteManager();
         _extendManager = new ExtendManager(Core, _state, _config);

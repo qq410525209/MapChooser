@@ -11,7 +11,7 @@
   "map_chooser.vote.you_voted": "You voted for [green]{0}[default].",
   "map_chooser.vote.ended": "Voting ended. Next map will be [green]{0}[default] ({1} votes).",
   "map_chooser.next_map_announced": "The next map will be [green]{0}[default].",
-  "map_chooser.changing_map": "Changing map to [green]{0}[default] in 3 seconds...",
+  "map_chooser.changing_map": "Changing map to [green]{0}[default] in {1} seconds...",
   "map_chooser.nominate.not_found": "Map [red]{0}[default] not found.",
   "map_chooser.nominate.current_map": "You cannot nominate the current map.",
   "map_chooser.votemap.cooldown": "Map [red]{0}[default] is in cooldown.",

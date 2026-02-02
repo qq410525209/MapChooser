@@ -72,20 +72,20 @@ public class VotemapCommand
         }
         var localizer = _core.Translation.GetPlayerLocalizer(player);
         var currentMapName = _core.ConVar.FindAsString("mapname")?.ValueAsString;
-        var map = _mapLister.Maps.FirstOrDefault(m => m.Name.Contains(mapName, StringComparison.OrdinalIgnoreCase));
+        var map = _mapLister.Maps.FirstOrDefault(m => m.Name.Contains(mapName, StringComparison.OrdinalIgnoreCase) || (m.Id != null && m.Id.Equals(mapName, StringComparison.OrdinalIgnoreCase)));
         if (map == null)
         {
             player.SendChat(localizer["map_chooser.prefix"] + " " + localizer["map_chooser.nominate.not_found", mapName]);
             return;
         }
 
-        if (!string.IsNullOrEmpty(currentMapName) && map.Name.Equals(currentMapName, StringComparison.OrdinalIgnoreCase))
+        if (!string.IsNullOrEmpty(currentMapName) && map.Id != null && map.Id.Equals(currentMapName, StringComparison.OrdinalIgnoreCase))
         {
             player.SendChat(localizer["map_chooser.prefix"] + " " + localizer["map_chooser.nominate.current_map"]);
             return;
         }
 
-        if (_mapCooldown.IsMapInCooldown(map.Name))
+        if (_mapCooldown.IsMapInCooldown(map))
         {
             player.SendChat(localizer["map_chooser.prefix"] + " " + localizer["map_chooser.votemap.cooldown", map.Name]);
             return;

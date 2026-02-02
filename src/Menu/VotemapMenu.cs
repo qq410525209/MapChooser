@@ -29,9 +29,9 @@ public class VotemapMenu
         builder.Design.SetMenuTitle(localizer["map_chooser.votemap.title"] ?? "Vote for the next map:");
         foreach (var map in _mapLister.Maps)
         {
-            if (!string.IsNullOrEmpty(currentMapName) && map.Name.Equals(currentMapName, StringComparison.OrdinalIgnoreCase)) continue;
+            if (!string.IsNullOrEmpty(currentMapName) && map.Id != null && map.Id.Equals(currentMapName, StringComparison.OrdinalIgnoreCase)) continue;
 
-            bool inCooldown = _mapCooldown.IsMapInCooldown(map.Name);
+            bool inCooldown = _mapCooldown.IsMapInCooldown(map);
 
             var option = new ButtonMenuOption($"<font color='lightgreen'>{map.Name}</font>");
             option.Enabled = !inCooldown;

@@ -17,5 +17,6 @@ public class PluginState
     public int NextEofVotePossibleRound { get; set; }
     public float NextEofVotePossibleTime { get; set; }
     public DateTime? RtvCooldownEndTime { get; set; }
+    public bool MatchEnded { get; set; }
     public Dictionary<int, string> Nominations { get; set; } = new();
 }

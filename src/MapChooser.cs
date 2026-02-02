@@ -57,7 +57,7 @@ public sealed class MapChooser : BasePlugin {
         _config = Core.Configuration.Manager.GetSection("MapChooser").Get<MapChooserConfig>() ?? new MapChooserConfig();
         _mapLister.UpdateMaps(_config.Maps);
         
-        _mapCooldown = new MapCooldown(_config);
+        _mapCooldown = new MapCooldown(Core, _config);
         _changeMapManager = new ChangeMapManager(Core, _state, _mapLister, _config);
         _rtvVoteManager = new VoteManager();
         _extVoteManager = new VoteManager();
@@ -73,7 +73,7 @@ public sealed class MapChooser : BasePlugin {
 
         _rtvCmd = new RtvCommand(Core, _state, _rtvVoteManager, _eofManager, _config);
         _unRtvCmd = new UnRtvCommand(Core, _state, _rtvVoteManager, _eofManager, _config);
-        _nominateCmd = new NominateCommand(Core, _state, _mapLister, _config);
+        _nominateCmd = new NominateCommand(Core, _state, _mapLister, _mapCooldown, _config);
         _timeleftCmd = new TimeleftCommand(Core, _state, _config);
         _nextmapCmd = new NextmapCommand(Core, _state);
         _votemapCmd = new VotemapCommand(Core, _state, _mapLister, _mapCooldown, _changeMapManager, _config);
@@ -129,6 +129,9 @@ public sealed class MapChooser : BasePlugin {
         _state.ExtendsLeft = _config.EndOfMap.ExtendLimit;
         _state.NextEofVotePossibleRound = 0;
         _state.NextEofVotePossibleTime = 0;
+        _state.MatchEnded = false;
+        
+        _mapCooldown.OnMapStart(@event.MapName, Core.Engine.WorkshopId);
     }
 
     private HookResult OnRoundStart(EventRoundStart @event)
@@ -186,10 +189,10 @@ public sealed class MapChooser : BasePlugin {
 
     private HookResult OnWinPanelMatch(EventCsWinPanelMatch @event)
     {
+        _state.MatchEnded = true;
         if (_state.EofVoteHappening)
         {
-            // If vote is still going when match ends, we should probably force end it
-            // or ensure the winner is set.
+            // Vote is still going when match ends.
         }
         else if (_state.MapChangeScheduled)
         {
@@ -201,7 +204,7 @@ public sealed class MapChooser : BasePlugin {
     private HookResult OnRoundEnd(EventRoundEnd @event)
     {
         _state.RoundsPlayed++;
-        if (_state.MapChangeScheduled && !_state.EofVoteHappening && !_state.ChangeMapImmediately)
+        if (_state.MapChangeScheduled && !_state.EofVoteHappening && !_state.ChangeMapImmediately && _state.IsRtv)
         {
             _changeMapManager.ChangeMap();
         }

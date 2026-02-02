@@ -37,7 +37,7 @@ public class AdminMapsVoteCommand
         var menu = new AdminMapsVoteMenu(_core, _mapLister);
         menu.Show(player, (p, maps) =>
         {
-            _eofManager.StartCustomVote(maps, _config.EndOfMap.VoteDuration, true);
+            _eofManager.StartCustomVote(maps, _config.EndOfMap.VoteDuration, false);
         });
     }
 }

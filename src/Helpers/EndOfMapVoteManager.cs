@@ -114,8 +114,8 @@ public class EndOfMapVoteManager
             
             // Fill rest with random maps (use display names from Map objects)
             var remainingSlots = mapsToShow - _mapsInVote.Count;
-            var otherMapNames = allMaps.Select(m => m.Name).Where(name => !_mapsInVote.Contains(name)).ToList();
-            _mapsInVote.AddRange(otherMapNames.OrderBy(x => random.Next()).Take(remainingSlots));
+            var candidateMaps = allMaps.Where(m => !_mapsInVote.Contains(m.Name) && !_mapCooldown.IsMapInCooldown(m)).ToList();
+            _mapsInVote.AddRange(candidateMaps.Select(m => m.Name).OrderBy(x => random.Next()).Take(remainingSlots));
         }
 
         if (_config.EndOfMap.AllowExtend && _state.ExtendsLeft > 0 && !_isRtvVote)
@@ -342,7 +342,9 @@ public class EndOfMapVoteManager
             else
             {
                 _core.PlayerManager.SendChat(_core.Localizer["map_chooser.prefix"] + " " + _core.Localizer["map_chooser.vote.ended", winner, _votes.GetValueOrDefault(winner, 0)]);
-                _changeMapManager.ScheduleMapChange(winner, _changeImmediately, _isRtvVote);
+                
+                bool changeImmediately = _changeImmediately || _state.MatchEnded;
+                _changeMapManager.ScheduleMapChange(winner, changeImmediately, _isRtvVote);
             }
         }
         finally

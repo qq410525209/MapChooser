@@ -12,11 +12,13 @@ public class NominateMenu
 {
     private readonly ISwiftlyCore _core;
     private readonly MapLister _mapLister;
+    private readonly MapCooldown _mapCooldown;
 
-    public NominateMenu(ISwiftlyCore core, MapLister mapLister)
+    public NominateMenu(ISwiftlyCore core, MapLister mapLister, MapCooldown mapCooldown)
     {
         _core = core;
         _mapLister = mapLister;
+        _mapCooldown = mapCooldown;
     }
 
     public void Show(IPlayer player, Action<IPlayer, string> onNominate)
@@ -27,9 +29,11 @@ public class NominateMenu
         builder.Design.SetMenuTitle(localizer["map_chooser.nominate.title"] ?? "Nominate a map:");
         foreach (var map in _mapLister.Maps)
         {
-            if (!string.IsNullOrEmpty(currentMapName) && map.Name.Equals(currentMapName, StringComparison.OrdinalIgnoreCase)) continue;
+            if (!string.IsNullOrEmpty(currentMapName) && map.Id != null && map.Id.Equals(currentMapName, StringComparison.OrdinalIgnoreCase)) continue;
 
+            bool inCooldown = _mapCooldown.IsMapInCooldown(map);
             var option = new ButtonMenuOption($"<font color='lightgreen'>{map.Name}</font>");
+            option.Enabled = !inCooldown;
             option.Click += (sender, args) =>
             {
                 _core.Scheduler.NextTick(() => {

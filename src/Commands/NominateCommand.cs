@@ -15,14 +15,16 @@ public class NominateCommand
     private readonly ISwiftlyCore _core;
     private readonly PluginState _state;
     private readonly MapLister _mapLister;
+    private readonly MapCooldown _mapCooldown;
     private readonly MapChooserConfig _config;
 
 
-    public NominateCommand(ISwiftlyCore core, PluginState state, MapLister mapLister, MapChooserConfig config)
+    public NominateCommand(ISwiftlyCore core, PluginState state, MapLister mapLister, MapCooldown mapCooldown, MapChooserConfig config)
     {
         _core = core;
         _state = state;
         _mapLister = mapLister;
+        _mapCooldown = mapCooldown;
         _config = config;
     }
 
@@ -53,7 +55,7 @@ public class NominateCommand
 
     private void OpenNominationMenu(IPlayer player)
     {
-        var menu = new NominateMenu(_core, _mapLister);
+        var menu = new NominateMenu(_core, _mapLister, _mapCooldown);
         menu.Show(player, HandleNomination);
     }
 
@@ -67,16 +69,22 @@ public class NominateCommand
         }
         var localizer = _core.Translation.GetPlayerLocalizer(player);
         var currentMapName = _core.ConVar.FindAsString("mapname")?.ValueAsString;
-        var map = _mapLister.Maps.FirstOrDefault(m => m.Name.Contains(mapName, StringComparison.OrdinalIgnoreCase));
+        var map = _mapLister.Maps.FirstOrDefault(m => m.Name.Contains(mapName, StringComparison.OrdinalIgnoreCase) || (m.Id != null && m.Id.Equals(mapName, StringComparison.OrdinalIgnoreCase)));
         if (map == null)
         {
             player.SendChat(localizer["map_chooser.prefix"] + " " + localizer["map_chooser.nominate.not_found", mapName]);
             return;
         }
 
-        if (!string.IsNullOrEmpty(currentMapName) && map.Name.Equals(currentMapName, StringComparison.OrdinalIgnoreCase))
+        if (!string.IsNullOrEmpty(currentMapName) && map.Id != null && map.Id.Equals(currentMapName, StringComparison.OrdinalIgnoreCase))
         {
             player.SendChat(localizer["map_chooser.prefix"] + " " + localizer["map_chooser.nominate.current_map"]);
+            return;
+        }
+
+        if (_mapCooldown.IsMapInCooldown(map))
+        {
+            player.SendChat(localizer["map_chooser.prefix"] + " " + localizer["map_chooser.votemap.cooldown", map.Name]);
             return;
         }
 

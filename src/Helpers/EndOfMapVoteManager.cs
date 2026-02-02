@@ -55,13 +55,50 @@ public class EndOfMapVoteManager
         _playerVotes.Clear();
         _playersReceivedMenu.Clear();
 
-        var allMaps = _mapLister.Maps.Select(m => m.Name).ToList();
+        // Get current map name to exclude it from the vote
+        var currentMapId = _core.Engine.GlobalVars.MapName.ToString();
+        var currentWorkshopId = _core.Engine.WorkshopId;
+
+        var allMaps = _mapLister.Maps.ToList();
+        
+        // Exclude current map from all maps list by comparing against Map.Id
+        // For workshop maps, also check against the workshop ID
+        if (!string.IsNullOrEmpty(currentMapId) || !string.IsNullOrEmpty(currentWorkshopId))
+        {
+            allMaps = allMaps.Where(m => {
+                // Match by regular map ID (e.g., "de_mirage")
+                var matchesMapId = !string.IsNullOrEmpty(currentMapId) && string.Equals(m.Id, currentMapId, StringComparison.OrdinalIgnoreCase);
+                
+                // Match by workshop ID (e.g., "3124567099")
+                var matchesWorkshopId = !string.IsNullOrEmpty(currentWorkshopId) && string.Equals(m.Id, currentWorkshopId, StringComparison.OrdinalIgnoreCase);
+                
+                return !(matchesMapId || matchesWorkshopId);
+            }).ToList();
+        }
+        
         var nominations = _state.Nominations.Values.Distinct().ToList();
+        
+        // Exclude current map from nominations (nominations are stored as map names, need to check against map IDs)
+        if (!string.IsNullOrEmpty(currentMapId) || !string.IsNullOrEmpty(currentWorkshopId))
+        {
+            // Find the current map's display name to filter from nominations
+            // Check both regular map ID and workshop ID
+            var currentMapDisplayName = allMaps.FirstOrDefault(m => 
+                (!string.IsNullOrEmpty(currentMapId) && string.Equals(m.Id, currentMapId, StringComparison.OrdinalIgnoreCase)) ||
+                (!string.IsNullOrEmpty(currentWorkshopId) && string.Equals(m.Id, currentWorkshopId, StringComparison.OrdinalIgnoreCase))
+            )?.Name;
+            
+            if (!string.IsNullOrEmpty(currentMapDisplayName))
+            {
+                nominations = nominations.Where(n => !n.Equals(currentMapDisplayName, StringComparison.OrdinalIgnoreCase)).ToList();
+            }
+        }
+        
         var random = new Random();
 
         _mapsInVote = new List<string>();
         
-        // Add nominations first
+        // Add nominations first (nominations are already map display names)
         if (nominations.Count >= mapsToShow)
         {
             _mapsInVote.AddRange(nominations.OrderBy(x => random.Next()).Take(mapsToShow));
@@ -70,16 +107,17 @@ public class EndOfMapVoteManager
         {
             _mapsInVote.AddRange(nominations);
             
-            // Fill rest with random maps
+            // Fill rest with random maps (use display names from Map objects)
             var remainingSlots = mapsToShow - _mapsInVote.Count;
-            var otherMaps = allMaps.Where(m => !_mapsInVote.Contains(m)).ToList();
-            _mapsInVote.AddRange(otherMaps.OrderBy(x => random.Next()).Take(remainingSlots));
+            var otherMapNames = allMaps.Select(m => m.Name).Where(name => !_mapsInVote.Contains(name)).ToList();
+            _mapsInVote.AddRange(otherMapNames.OrderBy(x => random.Next()).Take(remainingSlots));
         }
 
         if (_config.EndOfMap.AllowExtend && _state.ExtendsLeft > 0 && !_isRtvVote)
         {
             _mapsInVote.Add("map_chooser.extend_option");
         }
+
 
         foreach (var map in _mapsInVote)
             _votes[map] = 0;

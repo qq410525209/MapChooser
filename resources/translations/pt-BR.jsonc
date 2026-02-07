@@ -7,6 +7,7 @@
   "map_chooser.rtv.cooldown": "Votação para alterar o mapa está em cooldown. Aguarde {0} segundos.",
   "map_chooser.rtv.vote_failed_no_votes": "Votação RTV falhou porque nenhum voto foi registrado.",
   "map_chooser.rtv.not_voted": "Você não votou para alterar o mapa.",
+  "map_chooser.rtv.change_scheduled": "Uma alteração de mapa já está programada, aguarde...",
   "map_chooser.vote.started": "Votação começou! Vote no próximo mapa.",
   "map_chooser.vote.title": "Vote no próximo mapa:",
   "map_chooser.vote.you_voted": "Você votou em [green]{0}[default].",
@@ -45,4 +46,5 @@
   "map_chooser.vote.map_extended_both": "Mapa atual estendido em [green]{0}[default] minutos e [green]{1}[default] rounds. ({2} extensões restantes)",
   "map_chooser.admin_vote.title": "Selecionar mapas para votação:",
   "map_chooser.admin_vote.start": "INICIAR VOTAÇÃO"
+  "map_chooser.general.validation.player_count": "Mapa [red]{0}[default] não está disponível para o número atual de jogadores."
 }

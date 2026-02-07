@@ -27,14 +27,15 @@ public class VotemapMenu
         var currentMapName = _core.ConVar.FindAsString("mapname")?.ValueAsString;
         var builder = _core.MenusAPI.CreateBuilder();
         builder.Design.SetMenuTitle(localizer["map_chooser.votemap.title"] ?? "Vote for the next map:");
+        var playerCount = _core.PlayerManager.GetAllPlayers()
+            .Count(p => p.IsValid && !p.IsFakeClient);
         foreach (var map in _mapLister.Maps)
         {
             if (!string.IsNullOrEmpty(currentMapName) && map.Id != null && map.Id.Equals(currentMapName, StringComparison.OrdinalIgnoreCase)) continue;
-
-            bool inCooldown = _mapCooldown.IsMapInCooldown(map);
+            if (_mapCooldown.IsMapInCooldown(map)) continue;
+            if (!map.IsValidForPlayerCount(playerCount)) continue;
 
             var option = new ButtonMenuOption($"<font color='lightgreen'>{map.Name}</font>");
-            option.Enabled = !inCooldown;
             option.Click += (sender, args) =>
             {
                 _core.Scheduler.NextTick(() => {

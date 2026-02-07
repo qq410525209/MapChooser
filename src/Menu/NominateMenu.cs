@@ -24,16 +24,19 @@ public class NominateMenu
     public void Show(IPlayer player, Action<IPlayer, string> onNominate)
     {
         var localizer = _core.Translation.GetPlayerLocalizer(player);
-        var currentMapName = _core.ConVar.FindAsString("mapname")?.ValueAsString;
+        var currentMapId = _core.Engine.GlobalVars.MapName.ToString();
+        var currentWorkshopId = _core.Engine.WorkshopId;
         var builder = _core.MenusAPI.CreateBuilder();
         builder.Design.SetMenuTitle(localizer["map_chooser.nominate.title"] ?? "Nominate a map:");
+        var playerCount = _core.PlayerManager.GetAllPlayers()
+            .Count(p => p.IsValid && !p.IsFakeClient);
         foreach (var map in _mapLister.Maps)
         {
-            if (!string.IsNullOrEmpty(currentMapName) && map.Id != null && map.Id.Equals(currentMapName, StringComparison.OrdinalIgnoreCase)) continue;
+            if (IsCurrentMap(map, currentMapId, currentWorkshopId)) continue;
+            if (_mapCooldown.IsMapInCooldown(map)) continue;
+            if (!map.IsValidForPlayerCount(playerCount)) continue;
 
-            bool inCooldown = _mapCooldown.IsMapInCooldown(map);
             var option = new ButtonMenuOption($"<font color='lightgreen'>{map.Name}</font>");
-            option.Enabled = !inCooldown;
             option.Click += (sender, args) =>
             {
                 _core.Scheduler.NextTick(() => {
@@ -52,5 +55,16 @@ public class NominateMenu
 
         var menu = builder.Build();
         _core.MenusAPI.OpenMenuForPlayer(player, menu);
+    }
+
+    private static bool IsCurrentMap(Map map, string? currentMapId, string? currentWorkshopId)
+    {
+        if (string.IsNullOrEmpty(currentMapId) && string.IsNullOrEmpty(currentWorkshopId)) return false;
+        if (map.Id != null)
+        {
+            if (!string.IsNullOrEmpty(currentMapId) && map.Id.Equals(currentMapId, StringComparison.OrdinalIgnoreCase)) return true;
+            if (!string.IsNullOrEmpty(currentWorkshopId) && map.Id.Equals(currentWorkshopId, StringComparison.OrdinalIgnoreCase)) return true;
+        }
+        return false;
     }
 }

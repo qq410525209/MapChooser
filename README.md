@@ -85,19 +85,48 @@ MapChooser is a map voting plugin for SwiftlyS2. It handles Rock The Vote (RTV),
 | `MapsVotePermission` | `admin.mapsvote` | Permission flag required for the `!mapsvote` command. |
 | `Maps` | (List) | List of maps available. Use `ws:ID` for workshop maps. |
 
-### Map Configuration Example
+### Map Configuration
+
+Each map entry supports the following properties:
+
+| Property | Default | Description |
+| :--- | :--- | :--- |
+| `Name` | (required) | Display name shown in menus and chat. |
+| `Id` | (required) | Map identifier. Use the map name (e.g. `de_dust2`) or a workshop ID (e.g. `3124567099`). |
+| `MinPlayers` | `0` | Minimum number of real players required for this map to appear in votes and nominations. `0` means no minimum. |
+| `MaxPlayers` | `0` | Maximum number of real players allowed for this map to appear in votes and nominations. `0` means no maximum. |
+
+> **Note:** Maps without `MinPlayers`/`MaxPlayers` (or set to `0`) are considered valid for any number of players. If you want a map to **only** appear when there are few players, you must also set `MinPlayers` on your other maps to exclude them at low player counts. Bots are not counted.
+
+#### Example
 ```jsonc
 "Maps": [
     {
         "Name": "Dust II",
-        "Id": "de_dust2"
+        "Id": "de_dust2",
+        "MinPlayers": 4
     },
     {
         "Name": "Inferno Night",
-        "Id": "3124567099"
+        "Id": "3124567099",
+        "MinPlayers": 4
+    },
+    {
+        "Name": "Mirage",
+        "Id": "de_mirage",
+        "MinPlayers": 1,
+        "MaxPlayers": 3
+    },
+    {
+        "Name": "Overpass",
+        "Id": "de_overpass",
+        "MinPlayers": 1,
+        "MaxPlayers": 3
     }
 ]
 ```
+
+In this example, when there are 1–3 real players on the server, only `aim_redline_snow` and `AWP LEGO` will appear in votes and nominations. Once there are 4+ players, only `Dust II` and `Inferno Night` will be available.
 
 ## Features
 

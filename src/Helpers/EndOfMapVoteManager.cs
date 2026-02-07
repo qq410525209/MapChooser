@@ -101,7 +101,12 @@ public class EndOfMapVoteManager
         var currentMapId = _core.Engine.GlobalVars.MapName.ToString();
         var currentWorkshopId = _core.Engine.WorkshopId;
 
-        var allMaps = _mapLister.Maps.ToList();
+        var playerCount = _core.PlayerManager.GetAllPlayers()
+            .Count(p => p.IsValid && !p.IsFakeClient);
+
+        var allMaps = _mapLister.Maps
+            .Where(m => m.IsValidForPlayerCount(playerCount))
+            .ToList();
         
         // Find the current map's display name BEFORE filtering allMaps
         string? currentMapDisplayName = null;
@@ -131,6 +136,10 @@ public class EndOfMapVoteManager
         var nominations = _state.Nominations.Values
             .Distinct()
             .Where(n => !IsMapInCooldownForVote(n))
+            .Where(n => {
+                var map = _mapLister.Maps.FirstOrDefault(m => m.Name.Equals(n, StringComparison.OrdinalIgnoreCase));
+                return map == null || map.IsValidForPlayerCount(playerCount);
+            })
             .ToList();
         
         // Exclude current map from nominations using the display name we found earlier

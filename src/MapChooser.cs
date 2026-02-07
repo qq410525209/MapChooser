@@ -14,7 +14,7 @@ using SwiftlyS2.Shared.SchemaDefinitions;
 
 namespace MapChooser;
 
-[PluginMetadata(Id = "MapChooser", Version = "0.0.9-beta", Name = "Map Chooser", Author = "aga", Description = "Map chooser plugin for SwiftlyS2")]
+[PluginMetadata(Id = "MapChooser", Version = "0.0.10-beta", Name = "Map Chooser", Author = "aga", Description = "Map chooser plugin for SwiftlyS2")]
 public sealed class MapChooser : BasePlugin {
     private MapChooserConfig _config = new();
     private PluginState _state = new();
@@ -181,7 +181,6 @@ public sealed class MapChooser : BasePlugin {
         
         _rtvVoteManager?.Clear();
         _extVoteManager?.Clear();
-        _nominateCmd?.Clear();
         return HookResult.Continue;
     }
 

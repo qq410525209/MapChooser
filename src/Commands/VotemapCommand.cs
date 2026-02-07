@@ -91,6 +91,14 @@ public class VotemapCommand
             return;
         }
 
+        var playerCount = _core.PlayerManager.GetAllPlayers()
+            .Count(p => p.IsValid && !p.IsFakeClient);
+        if (!map.IsValidForPlayerCount(playerCount))
+        {
+            player.SendChat(localizer["map_chooser.prefix"] + " " + localizer["map_chooser.general.validation.player_count", map.Name]);
+            return;
+        }
+
         if (!_mapVotes.ContainsKey(map.Name))
         {
             _mapVotes[map.Name] = new VoteManager(_config.Votemap.VotePercentage);

@@ -30,10 +30,9 @@ public class NominateMenu
         foreach (var map in _mapLister.Maps)
         {
             if (!string.IsNullOrEmpty(currentMapName) && map.Id != null && map.Id.Equals(currentMapName, StringComparison.OrdinalIgnoreCase)) continue;
+            if (_mapCooldown.IsMapInCooldown(map)) continue;
 
-            bool inCooldown = _mapCooldown.IsMapInCooldown(map);
             var option = new ButtonMenuOption($"<font color='lightgreen'>{map.Name}</font>");
-            option.Enabled = !inCooldown;
             option.Click += (sender, args) =>
             {
                 _core.Scheduler.NextTick(() => {

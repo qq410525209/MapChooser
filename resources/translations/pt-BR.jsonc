@@ -45,6 +45,6 @@
   "map_chooser.vote.map_extended_rounds": "Mapa atual estendido em [green]{0}[default] rounds. ({1} extensões restantes)",
   "map_chooser.vote.map_extended_both": "Mapa atual estendido em [green]{0}[default] minutos e [green]{1}[default] rounds. ({2} extensões restantes)",
   "map_chooser.admin_vote.title": "Selecionar mapas para votação:",
-  "map_chooser.admin_vote.start": "INICIAR VOTAÇÃO"
+  "map_chooser.admin_vote.start": "INICIAR VOTAÇÃO",
   "map_chooser.general.validation.player_count": "Mapa [red]{0}[default] não está disponível para o número atual de jogadores."
 }

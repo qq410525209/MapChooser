@@ -35,6 +35,13 @@ public class NominateCommand
         
         var player = context.Sender!;
 
+        if (_state.WarmupRunning)
+        {
+            var localizer = _core.Translation.GetPlayerLocalizer(player);
+            player.SendChat(localizer["map_chooser.prefix"] + " " + localizer["map_chooser.general.validation.warmup"]);
+            return;
+        }
+
         if (!_config.AllowSpectatorsToVote && player.Controller?.TeamNum == 1)
         {
             var localizer = _core.Translation.GetPlayerLocalizer(player);

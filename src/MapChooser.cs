@@ -17,6 +17,7 @@ namespace MapChooser;
 [PluginMetadata(Id = "MapChooser", Version = "0.0.10-beta", Name = "Map Chooser", Author = "aga", Description = "Map chooser plugin for SwiftlyS2")]
 public sealed class MapChooser : BasePlugin {
     private MapChooserConfig _config = new();
+    private MapsConfig _mapsConfig = new();
     private PluginState _state = new();
     private MapLister _mapLister = new();
     private MapCooldown _mapCooldown = null!;
@@ -54,8 +55,15 @@ public sealed class MapChooser : BasePlugin {
                 builder.AddJsonFile("config.jsonc", optional: false, reloadOnChange: true);
             });
 
+        Core.Configuration
+            .InitializeJsonWithModel<MapsConfig>("maps.jsonc", "MapChooserMaps")
+            .Configure(builder => {
+                builder.AddJsonFile("maps.jsonc", optional: false, reloadOnChange: true);
+            });
+
         _config = Core.Configuration.Manager.GetSection("MapChooser").Get<MapChooserConfig>() ?? new MapChooserConfig();
-        _mapLister.UpdateMaps(_config.Maps);
+        _mapsConfig = Core.Configuration.Manager.GetSection("MapChooserMaps").Get<MapsConfig>() ?? new MapsConfig();
+        _mapLister.UpdateMaps(_mapsConfig.Maps);
         
         _mapCooldown = new MapCooldown(Core, _config);
         _changeMapManager = new ChangeMapManager(Core, _state, _mapLister, _config);

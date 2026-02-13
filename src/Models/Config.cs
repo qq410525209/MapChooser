@@ -56,5 +56,9 @@ public class MapChooserConfig
     public bool AllowSpectatorsToVote { get; set; } = false;
     public string SetNextMapPermission { get; set; } = "admin.changemap";
     public string MapsVotePermission { get; set; } = "admin.mapsvote";
+}
+
+public class MapsConfig
+{
     public List<Map> Maps { get; set; } = new();
 }

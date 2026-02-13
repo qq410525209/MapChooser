@@ -38,6 +38,18 @@
             "VotePercentage": 60
         },
         "MapsInCooldown": 3,
+        "Commands": {
+            "Rtv": "rtv",
+            "UnRtv": "unrtv",
+            "Nominate": "nominate,nom,yd",
+            "Timeleft": "timeleft",
+            "Nextmap": "nextmap",
+            "Votemap": "votemap",
+            "Revote": "revote",
+            "SetNextMap": "setnextmap",
+            "Extend": "ext,extendmap",
+            "MapsVote": "mapsvote"
+        },
         "AllowSpectatorsToVote": false,
         "SetNextMapPermission": "admin.changemap",
         "MapsVotePermission": "admin.mapsvote"

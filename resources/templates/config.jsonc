@@ -22,9 +22,24 @@
             "Enabled": true,
             "MapsToShow": 6,
             "VoteDuration": 30,
+            "ChangeMapDelay": 5,
             "TriggerSecondsBeforeEnd": 120,
-            "TriggerRoundsBeforeEnd": 4
+            "TriggerRoundsBeforeEnd": 4,
+            "AllowExtend": true,
+            "ExtendTimeStep": 15,
+            "ExtendRoundStep": 5,
+            "ExtendLimit": 3
         },
-        "MapsInCooldown": 3
+        "ExtendMap": {
+            "Enabled": true,
+            "EnabledInWarmup": false,
+            "MinPlayers": 0,
+            "MinRounds": 0,
+            "VotePercentage": 60
+        },
+        "MapsInCooldown": 3,
+        "AllowSpectatorsToVote": false,
+        "SetNextMapPermission": "admin.changemap",
+        "MapsVotePermission": "admin.mapsvote"
     }
 }
